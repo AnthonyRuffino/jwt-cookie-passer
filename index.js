@@ -14,8 +14,11 @@ class JwtCookiePasser {
 		authFormPasswordField,
 		logoutRedirect,
 		loginRedirect,
+		loginFailedRedirect,
 		loginFailureMessage,
 		unathorizedCode,
+		useJsonOnLogin,
+		useJsonOnLogout
 
 	}) {
 		this.passport = require('passport');
@@ -35,6 +38,7 @@ class JwtCookiePasser {
 		this.jwtTokenKey = jwtTokenKey || 'jwt-token';
 		this.loginUrl = loginUrl || '/auth';
 		this.logoutUrl = logoutUrl || '/logout';
+		this.loginFailedRedirect = loginFailedRedirect || '/loginFailed'
 		this.supportGetLogout = supportGetLogout || true;
 		this.authFormUserNameField = authFormUserNameField || 'username';
 		this.authFormUserNameField = authFormPasswordField || 'password';
@@ -42,6 +46,8 @@ class JwtCookiePasser {
 		this.loginRedirect = loginRedirect || '/';
 		this.loginFailureMessage = 'Username or password is incorrect';
 		this.unathorizedCode = unathorizedCode || 401;
+		this.useJsonOnLogin = useJsonOnLogin || false;
+		this.useJsonOnLogout = useJsonOnLogout || false;
 	}
 
 	setJwtCookie(res, token) {
@@ -130,7 +136,11 @@ class JwtCookiePasser {
 				loginLogoutHooks.logoutUserHook(req);
 			}
 			this.clearJwtCookie(res);
-			res.redirect(this.logoutRedirect);
+			if(this.useJsonOnLogout) {
+				res.status(200).json({ logoutSuccess: true });
+			} else {
+				res.redirect(this.logoutRedirect);
+			}
 		}
 		if (this.supportGetLogout) {
 			router.get(this.logoutUrl, (req, res) => {
@@ -146,11 +156,20 @@ class JwtCookiePasser {
 		router.post(this.loginUrl, urlencodedParser, (req, res) => {
 			userService.login(req.body.username, req.body.password, (err, user) => {
 				if (err) {
-					res.status(this.unathorizedCode).json({ message: this.loginFailureMessage });
+					if(this.useJsonOnLogin) {
+						res.status(this.unathorizedCode).json({ message: this.loginFailureMessage });
+					} else {
+						res.redirect(this.loginFailedRedirect);
+					}
+					
 					return;
 				}
 				if (!user) {
-					res.status(this.unathorizedCode).json({ message: this.loginFailureMessage });
+					if(this.useJsonOnLogin) {
+						res.status(this.unathorizedCode).json({ message: this.loginFailureMessage });
+					} else {
+						res.redirect(this.loginFailedRedirect);
+					}
 					return;
 				}
 
@@ -160,7 +179,12 @@ class JwtCookiePasser {
 					loginLogoutHooks.loginUserHook(req, mappedUser, token, loginLogoutHooks.passRawUserInLoginHook ? user : undefined);
 				}
 				this.setJwtCookie(res, token);
-				res.redirect(this.loginRedirect);
+				
+				if(this.useJsonOnLogin) {
+					res.status(200).json({ user: mappedUser });
+				} else {
+					res.redirect(this.loginRedirect);
+				}
 			});
 		});
 	}
