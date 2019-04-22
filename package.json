@@ -1,6 +1,6 @@
 {
   "name": "jwt-cookie-passer",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Helper methods and middleware for passing jwt tokens back and fort via cookies instead of Authorization headers.",
   "main": "index.js",
   "scripts": {
