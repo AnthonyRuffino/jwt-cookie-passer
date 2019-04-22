@@ -51,11 +51,13 @@ class JwtCookiePasser {
 	}
 
 	setJwtCookie(res, token) {
-		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true, domain: this.domain });
+		const domain = this.domain || res.req.headers.host;
+		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true, domain });
 	}
 
 	clearJwtCookie(res) {
-		res.cookie(this.jwtTokenKey, 'expired', { maxAge: 1, httpOnly: true, domain: this.domain });
+		const domain = this.domain || res.req.headers.host;
+		res.cookie(this.jwtTokenKey, 'expired', { maxAge: 1, httpOnly: true, domain });
 	}
 
 	getTokenFromCookies(cookies) {
@@ -109,7 +111,7 @@ class JwtCookiePasser {
 					const newToken = this.jwt.sign(user, this.jwtOptions.secretOrKey, { expiresIn: this.jwtOptions.expiresIn });
 					this.setJwtCookie(res, newToken);
 					req.headers['authorization'] = 'JWT ' + newToken;
-					req.user = user
+					req.user = user;
 				}
 			}
 			next();
@@ -141,7 +143,7 @@ class JwtCookiePasser {
 			} else {
 				res.redirect(this.logoutRedirect);
 			}
-		}
+		};
 		if (this.supportGetLogout) {
 			router.get(this.logoutUrl, (req, res) => {
 				logout(req, res);
